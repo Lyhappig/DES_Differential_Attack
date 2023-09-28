@@ -5,6 +5,7 @@ set(CMAKE_CXX_STANDARD 17)
 
 include_directories(./DES)
 
+add_subdirectory(./Eight_Rounds)
 add_subdirectory(./Six_Rounds)
 add_subdirectory(./Three_Rounds)
 

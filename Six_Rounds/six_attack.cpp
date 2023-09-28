@@ -145,6 +145,7 @@ bool filter(const bit *delta_B6, const bit *B6, const bit *delta_C6) {
  * 六轮攻击主体
  * @param dl3 第三轮左半部分的差分
  * @param pair_id 明文对的ID
+ * @param number 筛选出正确对的数量
  */
 void six_attack(uint32 dl3, int pair_id, int &number) {
     bit delta_L3[32 + 1];

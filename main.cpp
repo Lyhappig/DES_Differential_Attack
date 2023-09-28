@@ -72,6 +72,14 @@ void get_bits(uint32 &delta, bit *x) {
     }
 }
 
+uint32 get_val(bit *a) {
+    uint32 ret = 0;
+    for(int i = 1; i <= 32; i++) {
+        ret = (ret << 1) | a[i];
+    }
+    return ret;
+}
+
 void print_bits(bit *a, int n, int per) {
     for (int i = 1; i <= n; i++) {
         cout << a[i];
@@ -85,14 +93,17 @@ void print_bits(bit *a, int n, int per) {
 /**
  * 检测对于轮函数输入差分 40080000 扩展置换后能否得到 2,5,6,7,8 五个S盒输入差分全为0
  * 检测对于轮函数输入差分 02000008 扩展置换后能否得到 1,2,4,5,6 五个S盒输入差分全为0
+ * 检测对于轮函数输入差分 405C0000 扩展置换后能否得到 2,5,6,7,8 五个S盒输入差分全为0
+ * 求出对于轮函数输入差分 04000000 扩展置换后的输出
  */
 void test_expansion() {
 //    uint32 delta = 0x40080000U;
-    uint32 delta = 0x00200008U;
+//    uint32 delta = 0x00200008U;
+//    uint32 delta = 0x405C0000U;
+    uint32 delta = 0x04000000U;
     bit r[32 + 1], e[48 + 1];
     get_bits(delta, r);
     expansion(r, e);
-    // 2,5,6,7,8 五个S盒输入差分全为0
     print_bits(e, 48, 6);
 }
 
@@ -118,9 +129,10 @@ void init_s_xor() {
 
 /**
  * 打印S盒的差分分布表
- * @param id
+ * @param id [0, 8)
  */
 void print_s_xor(int id) {
+    init_s_xor();
     bitset<6> in;
     bitset<4> out;
     for (int i = 0; i < 64; i++) {
@@ -175,18 +187,19 @@ struct Frac {
 };
 
 /**
- * 当轮函数的输入差分为 0400000，输出差分为 40080000 时
- * 检测其差分概率是否为 1/4
+ * 当轮函数的输入差分为 04000000，输出差分为 40080000 时，检测其差分概率是否为 1/4
+ * 当轮函数的输入差分为 00540000，输出差分为 04000000 时，检测其差分概率是否为 (16 * 10) / (64 * 64) = 5 / 128
  */
 void test_possibility() {
-    uint32 D1 = 0x40080000U, D2 = 0x04000000U;
+    uint32 D1 = 0x04000000U, D2 = 0x40080000U;
+//    uint32 D1 = 0x00540000U, D2 = 0x04000000U;
     bit d1[32 + 1], d2[32 + 1], out[32 + 1], in[48 + 1];
     get_bits(D1, d1);
     get_bits(D2, d2);
-    expansion(d2, in);
-//    print_bits(in, 48, 6);
-    reverse_permutation(d1, out);
-//    print_bits(out, 32, 4);
+    expansion(d1, in);
+    print_bits(in, 48, 6);
+    reverse_permutation(d2, out);
+    print_bits(out, 32, 4);
     init_s_xor();
 //    print_s_xor(1);
     Frac ans;
@@ -257,12 +270,63 @@ void test_reduced_crypt() {
     puts("");
 }
 
+/**
+ * Biham-Shamir 论文 P32
+ * 检测对于 04000000，经过轮函数后得到的 P(0W00 0000) = X00Y Z0T0 中 W,X,Y,Z 的分布情况
+ * 预期结果 W = {0, 1, 2, 3, 8, 9, A, B}, X = {0, 4}, Y = {0, 8}, Z = {0, 4}, T = 0
+ * 实际结果 W = {3, 5, 7, 9, A, B, C, E, F}, X = {0, 4}, Y = {0, 8}, Z = {0, 4}, T = {0, 1}
+ */
+void test_possibility2() {
+    int s2_xor = 8;
+    bit in[32 + 1], out[32 + 1];
+    set<int> s;
+    vector<int> vec;
+    for(int i = 0; i < 64; i++) {
+        for(int j = 0; j < 64; j++) {
+            if((i ^ j) == s2_xor) {
+                int k = get_sbox(i, 1) ^ get_sbox(j, 1);
+                vec.push_back(k);
+                s.insert(k);
+            }
+        }
+    }
+    // 输出 P(0W00 0000) 中 W 的取值情况
+    cout << "W = {";
+    for(auto val: s) {
+        cout << val << " ";
+    }
+    cout << "}" << endl;
+    map<uint32, int> mp;
+    for(auto &val: vec) {
+        memset(in, 0, sizeof(in));
+        bitset<4> b(val);
+        for(int i = 0; i < 4; i++) {
+            in[5 + i] = b[3 - i];
+        }
+        permutation(in, out);
+        print_bits(out, 32, 4);
+        mp[get_val(out)]++;
+    }
+    uint32 n1 = 0x40080000U;
+    uint32 n2 = 0x00004000U;
+    int cnt = 0;
+    // P(0W00 0000) = 40080000 的概率
+    cout << mp[n1] << "/64" << endl;
+    for(auto it = mp.begin(); it != mp.end(); it++) {
+        if((it->first & n2) != 0) {
+            cnt += it->second;
+        }
+    }
+    // P(0W00 0000) = *00* 40*0 的概率
+    cout << cnt << "/64" << endl;
+}
 
 int main() {
-    test_stable();
-    test_crypt();
-    test_reduced_crypt();
-    test_expansion();
+//    test_stable();
+//    test_crypt();
+//    test_reduced_crypt();
+//    test_expansion();
     test_possibility();
+    test_possibility2();
     return 0;
 }
