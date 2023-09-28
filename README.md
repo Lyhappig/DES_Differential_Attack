@@ -4,9 +4,11 @@
 
 `./DES/des.cpp ./DES/des.hpp` DES算法文件
 
-`./Three_Rounds` DES三轮攻击代码
+`./Three_Rounds` DES 3轮攻击代码
 
-`./Six_Rounds` DES六轮攻击代码
+`./Six_Rounds` DES 6轮攻击代码
+
+`./Six_Rounds` DES 8轮攻击代码
 
 ## 编译
 
