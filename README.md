@@ -8,7 +8,7 @@
 
 `./Six_Rounds` DES 6轮攻击代码
 
-`./Six_Rounds` DES 8轮攻击代码
+`./Eight_Rounds` DES 8轮攻击代码
 
 ## 编译
 
